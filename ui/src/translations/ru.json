@@ -1284,7 +1284,6 @@
     "pause backfills": "Приостановить заполнения",
     "backfill executions": "Выполнения заполнение",
     "execute backfill": "Выполнить заполнение",
-    "relative": "Относительный",
     "relative start date": "Относительная дата начала",
     "now": "Сейчас",
     "absolute": "Абсолютный",
@@ -2967,8 +2966,7 @@
         "panForward": "Прокрутить вперёд",
         "zoomIn": "Увеличить",
         "zoomOut": "Уменьшить",
-        "range": "{start} → {end} ({duration})",
-        "rangePicker": "Изменить диапазон времени"
+        "range": "{start} → {end} ({duration})"
       },
       "row": {
         "openOwnPage": "Открыть эту страницу",

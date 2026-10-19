@@ -1284,7 +1284,6 @@
     "pause backfills": "Metti in pausa i backfills",
     "backfill executions": "Esecuzioni di backfill",
     "execute backfill": "Esegui backfill",
-    "relative": "Relativo",
     "relative start date": "Data di inizio relativa",
     "now": "Ora",
     "absolute": "Assoluto",
@@ -2967,8 +2966,7 @@
         "panForward": "Scorri avanti",
         "zoomIn": "Zoom avanti",
         "zoomOut": "Zoom indietro",
-        "range": "{start} → {end} ({duration})",
-        "rangePicker": "Cambia intervallo di tempo"
+        "range": "{start} → {end} ({duration})"
       },
       "row": {
         "openOwnPage": "Apri questa pagina",
