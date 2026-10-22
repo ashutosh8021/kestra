@@ -2956,6 +2956,9 @@
     "delete_log_iteration": "Êtes-vous sûr de vouloir supprimer le journal pour {iteration} ?",
     "not started": "Non démarré",
     "executionsTimeline": {
+      "bar": {
+        "label": "{flow} : {state}"
+      },
       "breadcrumb": {
         "all": "Tous",
         "total": "{count} exécution | {count} exécutions",
@@ -2974,7 +2977,8 @@
         "failedCount": "{count} en échec"
       },
       "bucket": {
-        "hint": "Agrégé : zoomez pour le détail au niveau de l'exécution"
+        "hint": "Agrégé : zoomez pour le détail au niveau de l'exécution",
+        "stateCount": "{state} : {count}"
       },
       "popover": {
         "openExecution": "Ouvrir l'exécution",
@@ -2990,10 +2994,11 @@
         "description": "Une erreur s'est produite lors du chargement des exécutions pour cette période."
       },
       "truncated": {
-        "description": "Affichage des {shown} dernières exécutions sur {total} — réduisez la période ou les filtres pour toutes les voir."
+        "description": "Affichage des {shown} dernières exécutions sur {total}. Réduisez la période ou les filtres pour toutes les voir."
       },
       "scrubber": {
-        "label": "Densité d'Execution au fil du temps, faites glisser pour sélectionner une plage"
+        "label": "Densité d'Execution au fil du temps, faites glisser pour sélectionner une plage",
+        "ignoredFilters": "La barre de densité n'applique pas ces filtres : {filters}"
       }
     },
     "chart mode": {
