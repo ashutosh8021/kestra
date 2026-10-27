@@ -56,6 +56,15 @@ function mountExecutionRoot() {
     })
 }
 
+function rejectionHandlerOf(mock: ReturnType<typeof vi.fn>) {
+    let handler: ((e: unknown) => unknown) | undefined
+    mock.mockReturnValueOnce({catch: (onRejected: (e: unknown) => unknown) => {
+        handler = onRejected
+        return new Promise(() => {})
+    }})
+    return () => handler!
+}
+
 describe("useExecutionRoot dependency count", () => {
     const flowStore = useFlowStore()
 
@@ -68,6 +77,16 @@ describe("useExecutionRoot dependency count", () => {
 
         expect(flowStore.loadDependencies).toHaveBeenCalledWith(expect.objectContaining({id: "demo_breadcrumb_fix"}), true)
         expect(forbidden.__kestra_handled).toBe(true)
+        wrapper.unmount()
+    })
+
+    it("still surfaces a failure other than a missing permission while loading the dependency count", async () => {
+        const handler = rejectionHandlerOf(vi.mocked(flowStore.loadDependencies))
+
+        const wrapper = mountExecutionRoot()
+        await flushPromises()
+
+        expect(() => handler()({status: 500})).toThrow()
         wrapper.unmount()
     })
 })
