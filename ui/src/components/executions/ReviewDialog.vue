@@ -9,6 +9,7 @@
     >
         <template #header>
             <i18n-t keypath="approval.title" tag="span" scope="global">
+                <template #task><code>{{ taskRun.taskId }}</code></template>
                 <template #id><code>{{ execution.id }}</code></template>
             </i18n-t>
         </template>
@@ -17,8 +18,8 @@
             <InputsForm
                 v-if="inputsList.length > 0"
                 :initialInputs="inputsList"
-                :execution="execution"
                 v-model="inputs"
+                @validation="validateInputs"
                 @ready="baseline = snapshot()"
             />
             <KsFormItem :label="$t('approval.comment')">
@@ -46,7 +47,9 @@
     import InputsForm from "../inputs/InputsForm.vue"
     import {inputsToFormData} from "../../utils/submitTask"
     import {decisionLabel, isCommentRequired, type ApprovalTask, type ApprovalTaskRun} from "../../utils/approval"
-    import {useExecutionsStore, type Execution, type ReviewDecision} from "../../stores/executions"
+    import {useExecutionsStore, type Execution, type ReviewDecision, type ValidationEventPayload} from "../../stores/executions"
+    import {loadTaskRunOutputs} from "../../composables/useTaskRunOutputs"
+    import {handledIf} from "../../utils/kestraHttp"
     import {useToast} from "../../utils/toast"
 
     const props = defineProps<{
@@ -68,33 +71,48 @@
 
     const inputsList = computed(() => props.task.inputs ?? [])
 
-    const commentHintKey = computed(() => {
-        switch (props.task.commentRequired) {
-        case "ALWAYS":
-            return "approval.comment hint.always"
-        case "ON_APPROVE":
-            return "approval.comment hint.on approve"
-        case "ON_DENY":
-            return "approval.comment hint.on deny"
-        default:
-            return "approval.comment hint.optional"
-        }
-    })
+    const COMMENT_HINT_KEYS: Record<string, string> = {
+        ALWAYS: "approval.comment hint.always",
+        ON_APPROVE: "approval.comment hint.on approve",
+        ON_DENY: "approval.comment hint.on deny",
+    }
+
+    // The task property can be an expression, so the rendered value is read from the paused task run's outputs.
+    const renderedCommentRequired = ref<string>()
+    const commentRequired = computed(() => renderedCommentRequired.value ?? props.task.commentRequired)
+    const commentHintKey = computed(() => COMMENT_HINT_KEYS[commentRequired.value ?? ""] ?? "approval.comment hint.optional")
 
     const baseline = ref("")
-    const snapshot = () => JSON.stringify({inputs: inputs.value, comment: comment.value})
-    const isDirty = computed(() => snapshot() !== baseline.value)
+    const snapshot = () => JSON.stringify(inputs.value)
+    const isDirty = computed(() => snapshot() !== baseline.value || comment.value !== "")
 
     watch(visible, (open) => {
         if (open) {
             inputs.value = {}
             comment.value = ""
             baseline.value = snapshot()
+            loadCommentRequired()
         }
     }, {immediate: true})
 
+    async function loadCommentRequired() {
+        renderedCommentRequired.value = undefined
+        const outputs = await loadTaskRunOutputs(props.execution.id, props.taskRun.id).catch((e: unknown): Record<string, unknown> => {
+            if (!handledIf(e, [403])) throw e
+            return {}
+        })
+        if (typeof outputs.commentRequired === "string") {
+            renderedCommentRequired.value = outputs.commentRequired
+        }
+    }
+
+    function validateInputs({formData, callback}: ValidationEventPayload) {
+        executionsStore.validateReview({id: props.execution.id, taskRunId: props.taskRun.id, decision: "APPROVE", formData}).then(callback)
+    }
+
     function submit(decision: ReviewDecision) {
-        if (isCommentRequired(props.task.commentRequired, decision) && comment.value.trim() === "") {
+        const trimmedComment = comment.value.trim()
+        if (isCommentRequired(commentRequired.value, decision) && trimmedComment === "") {
             toast.error(t("approval.comment required"))
             return
         }
@@ -105,8 +123,8 @@
             }
 
             const formData = inputsToFormData(inputsList.value, inputs.value) ?? new FormData()
-            if (comment.value !== "") {
-                formData.append("kestra_review_comment", comment.value)
+            if (trimmedComment !== "") {
+                formData.append("kestra_review_comment", trimmedComment)
             }
 
             submitting.value = true
