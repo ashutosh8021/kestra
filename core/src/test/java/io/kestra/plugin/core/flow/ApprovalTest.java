@@ -337,6 +337,16 @@ public class ApprovalTest {
     }
 
     @Test
+    @LoadFlows({ "flows/valids/approval-comment-expression.yaml" })
+    void shouldExposeTheRenderedCommentRequiredWhileWaitingForADecision() throws Exception {
+        Execution execution = runnerUtils.runOneUntilPaused(MAIN_TENANT, "io.kestra.tests", "approval-comment-expression", null, null, Duration.ofSeconds(30));
+
+        Map<String, Object> outputs = taskOutputService.getOutputs(execution.findTaskRunsByTaskId("approval").getFirst());
+
+        assertThat(outputs.get("commentRequired")).isEqualTo("ON_DENY");
+    }
+
+    @Test
     @LoadFlows({ "flows/valids/approval-inputs.yaml" })
     @SuppressWarnings("unchecked")
     void shouldStoreDecisionInputsInOutputs() throws Exception {

@@ -393,7 +393,12 @@ public class Approval extends Task implements FlowableTask<Approval.Output>, Pau
             if (autoApprove) {
                 return Output.builder().url(url).title(title).decision(Decision.Type.APPROVED).auto(true).build();
             }
-            return Output.builder().url(url).title(title).caseId(caseId).build();
+            return Output.builder()
+                .url(url)
+                .title(title)
+                .caseId(caseId)
+                .commentRequired(runContext.render(this.commentRequired).as(CommentRequired.class).orElse(CommentRequired.NEVER))
+                .build();
         }
 
         return Output.builder()
@@ -534,6 +539,9 @@ public class Approval extends Task implements FlowableTask<Approval.Output>, Pau
 
         @Schema(title = "Identifier of the approval case. Enterprise Edition only.")
         private String caseId;
+
+        @Schema(title = "The rendered `commentRequired`, while the request waits for a decision.")
+        private CommentRequired commentRequired;
     }
 
     @Builder
