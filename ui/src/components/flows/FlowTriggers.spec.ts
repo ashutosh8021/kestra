@@ -59,18 +59,21 @@ vi.mock("../../utils/toast", () => ({
 }))
 
 // trigger-b already ran once (hence the current execution), trigger-a never did
-// (hence no state row and no current execution).
+// (hence no state row and no current execution). A test may add fields to trigger-b's state.
+const triggerBState = vi.hoisted(() => ({extra: {} as Record<string, unknown>}))
+
 vi.mock("../../utils/triggers", () => ({
-    searchTriggersForFlow: vi.fn().mockResolvedValue({
+    searchTriggersForFlow: vi.fn().mockImplementation(() => Promise.resolve({
         results: [
             {
                 triggerId: "trigger-b",
                 namespace: "company.team",
                 flowId: "my-flow",
                 executionId: "execution-for-b",
+                ...triggerBState.extra,
             },
         ],
-    }),
+    })),
 }))
 
 vi.mock("../../stores/productTour", () => ({
@@ -89,6 +92,7 @@ const RouterLinkStub = defineComponent({
 function mountTriggersTab() {
     const wrapper = i18nMount(FlowTriggers, {
         props: {embed: true},
+        messages: {"trigger blocked tooltip": "{reason} (until next evaluation)"},
         // TestEventDialog pulls editor bindings (real Pinia stores) even while
         // closed; it is irrelevant to the executions link.
         global: {plugins: [createPinia()], stubs: {RouterLink: RouterLinkStub, TestEventDialog: true}},
@@ -106,12 +110,45 @@ beforeEach(() => {
     sessionStorage.clear()
     searchLogs.mockReset().mockResolvedValue({results: [], total: 0})
     permissions.isAllowed = (resource: string, action: string) => resource === "EXECUTION" && action === "VIEW"
+    triggerBState.extra = {}
 })
 afterEach(() => {
     while (mounted.length) mounted.pop()?.unmount()
     localStorage.clear()
     sessionStorage.clear()
     vi.useRealTimers()
+})
+
+// kestra-ee#10290: a trigger blocked by governance says so in place of its next evaluation date.
+describe("FlowTriggers - governance block", () => {
+    const blockedTooltip = (wrapper: VueWrapper) =>
+        wrapper.findAllComponents({name: "KsTooltip"}).find(tooltip => tooltip.find("[data-test=\"trigger-blocked\"]").exists())
+
+    it("shows the policy's message when a policy blocks the trigger", async () => {
+        triggerBState.extra = {blocked: {reason: "POLICY", policyIds: ["deny-log"], message: "Log plugin is not allowed by policy"}}
+
+        const wrapper = mountTriggersTab()
+        await flushPromises()
+
+        expect(wrapper.findAll("[data-test=\"trigger-blocked\"]")).toHaveLength(1)
+        expect(blockedTooltip(wrapper)?.props("content")).toBe("Log plugin is not allowed by policy (until next evaluation)")
+    })
+
+    it("hides the failure cause when the policies could not be checked", async () => {
+        triggerBState.extra = {blocked: {reason: "CHECK_FAILED", policyIds: [], message: "Governance policy resolution failed: connection reset"}}
+
+        const wrapper = mountTriggersTab()
+        await flushPromises()
+
+        expect(blockedTooltip(wrapper)?.props("content")).toBe("trigger blocked check failed (until next evaluation)")
+    })
+
+    it("shows no block for a trigger governance accepts", async () => {
+        const wrapper = mountTriggersTab()
+        await flushPromises()
+
+        expect(wrapper.find("[data-test=\"trigger-blocked\"]").exists()).toBe(false)
+    })
 })
 
 // Issue #12784: each trigger row links to the flow executions tab pre-filtered

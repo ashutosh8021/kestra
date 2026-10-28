@@ -1154,6 +1154,9 @@
     "unlock trigger": {
       "success": "Trigger разблокирован"
     },
+    "trigger blocked": "Заблокировано политикой",
+    "trigger blocked check failed": "Не удалось проверить политики управления, поэтому trigger удерживается до тех пор, пока это не станет возможным.",
+    "trigger blocked tooltip": "{reason} Этот статус обновляется при следующей проверке trigger, поэтому он может отображаться ещё некоторое время после снятия блокировки, а также пока отключённый trigger не будет снова включён.",
     "trigger disabled": "Триггер отключен в источнике Flow",
     "trigger enable dialog": {
       "title": "Включить trigger",

@@ -52,6 +52,7 @@ import io.kestra.core.scheduler.model.TriggerType;
 import io.kestra.core.scheduler.store.TriggerStateStore;
 import io.kestra.core.services.ConditionService;
 import io.kestra.core.utils.IdUtils;
+import io.kestra.scheduler.internals.MissedSchedulesRecovery;
 import io.kestra.scheduler.utils.CollectorTriggerExecutionPublisher;
 import io.kestra.scheduler.utils.InMemoryFlowMetaStore;
 import io.kestra.scheduler.utils.InMemoryTriggerStateStore;
@@ -108,7 +109,8 @@ class TriggerEventHandlerTest {
             runContextFactory,
             conditionService,
             executionKilledQueue,
-            new AsyncOperationService(asyncOperationProcessedEventQueue)
+            new AsyncOperationService(asyncOperationProcessedEventQueue),
+            new MissedSchedulesRecovery(runContextFactory)
         );
     }
 
@@ -1637,7 +1639,8 @@ class TriggerEventHandlerTest {
             runContextFactory,
             conditionService,
             executionKilledQueue,
-            new AsyncOperationService(asyncOperationProcessedEventQueue)
+            new AsyncOperationService(asyncOperationProcessedEventQueue),
+            new MissedSchedulesRecovery(runContextFactory)
         );
         String operationId = IdUtils.create();
         SetDisableTrigger event = new SetDisableTrigger(triggerId, true).withOperationId(operationId);

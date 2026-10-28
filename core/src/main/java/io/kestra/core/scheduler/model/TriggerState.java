@@ -50,6 +50,7 @@ public final class TriggerState implements TriggerId {
     private final Instant lastTriggeredDate;
     private final String executionId;
     private final long dispatchEpoch;
+    private final TriggerBlock blocked;
 
     @JsonProperty
     public Long getNextEvaluationEpoch() {
@@ -119,7 +120,8 @@ public final class TriggerState implements TriggerId {
             null,
             null,
             null,
-            0L
+            0L,
+            null
         );
     }
 
@@ -185,6 +187,16 @@ public final class TriggerState implements TriggerId {
      */
     public TriggerState sourceDisabled(final Clock clock, boolean sourceDisabled) {
         return update(clock).sourceDisabled(sourceDisabled).build();
+    }
+
+    /**
+     * Records why governance rejects this trigger's flow, or clears it with {@code null}.
+     *
+     * @param clock the scheduler clock.
+     * @return a new {@link TriggerState}
+     */
+    public TriggerState blocked(final Clock clock, TriggerBlock blocked) {
+        return update(clock).blocked(blocked).build();
     }
 
     /**
@@ -414,7 +426,8 @@ public final class TriggerState implements TriggerId {
             .lastEventId(lastEventId)
             .lastTriggeredDate(lastTriggeredDate)
             .executionId(executionId)
-            .dispatchEpoch(dispatchEpoch);
+            .dispatchEpoch(dispatchEpoch)
+            .blocked(blocked);
     }
 
     // Lombok hack to properly generate Javadoc

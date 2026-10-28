@@ -42,6 +42,7 @@ import io.kestra.core.services.FlowParsingService;
 import io.kestra.core.utils.Disposable;
 import io.kestra.core.utils.ExecutorsUtils;
 import io.kestra.scheduler.internals.DefaultSchedulableTriggerFetcher;
+import io.kestra.scheduler.internals.MissedSchedulesRecovery;
 import io.kestra.scheduler.internals.SchedulableEvaluator;
 import io.kestra.scheduler.pubsub.TriggerWorkerJobPublisher;
 import io.kestra.scheduler.stores.CachedFlowMetaStore;
@@ -319,7 +320,7 @@ class DefaultSchedulerTest {
             conditionService,
             flowParsingService,
             schedulableEvaluator,
-            new DefaultSchedulableTriggerFetcher(runContextFactory, triggerStateStore, flowMetaStore, flowParsingService),
+            new DefaultSchedulableTriggerFetcher(runContextFactory, triggerStateStore, flowMetaStore, flowParsingService, new MissedSchedulesRecovery(runContextFactory)),
             triggerWorkerJobPublisher,
             triggerExecutionPublisher,
             SCHEDULER_CONFIGURATION
@@ -357,7 +358,8 @@ class DefaultSchedulerTest {
             runContextFactory,
             conditionService,
             Mockito.mock(BroadcastQueueInterface.class),
-            Mockito.mock(AsyncOperationService.class)
+            Mockito.mock(AsyncOperationService.class),
+            new MissedSchedulesRecovery(runContextFactory)
         );
     }
 

@@ -1,5 +1,6 @@
 package io.kestra.core.repositories;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -19,6 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.event.Level;
 
+import io.kestra.core.exceptions.FlowBlockedException;
 import io.kestra.core.exceptions.InvalidQueryFiltersException;
 import io.kestra.core.models.QueryFilter;
 import io.kestra.core.models.QueryFilter.Field;
@@ -29,6 +31,7 @@ import io.kestra.core.notification.NotificationItemRepositoryInterface;
 import io.kestra.core.notification.model.NotificationItem;
 import io.kestra.core.notification.model.NotificationItemOutcome;
 import io.kestra.core.repositories.ExecutionRepositoryInterface.ChildFilter;
+import io.kestra.core.scheduler.model.TriggerBlock;
 import io.kestra.core.scheduler.model.TriggerState;
 import io.kestra.core.scheduler.model.TriggerType;
 import io.kestra.core.scheduler.store.TriggerStateStore;
@@ -304,6 +307,24 @@ public abstract class AbstractTriggerRepositoryTest {
         assertThat(result).isNotEmpty();
         assertThat(TriggerId.of(result.get())).isEqualTo(TriggerId.of(updated));
         assertThat(result.get().getUpdatedAt()).isEqualTo(updatedAt);
+    }
+
+    @Test
+    void shouldKeepTheBlockWhenSavingABlockedState() {
+        // GIVEN a state blocked by governance
+        String tenant = TestsUtils.randomTenant(this.getClass().getSimpleName());
+        TriggerBlock block = new TriggerBlock(FlowBlockedException.Reason.POLICY, List.of("deny-log"), "Log plugin is not allowed by policy");
+        TriggerState blocked = triggerStateStore.save(trigger(tenant).build().blocked(Clock.systemUTC(), block));
+
+        // WHEN the block is saved, then cleared
+        Optional<TriggerState> whileBlocked = triggerStateStore.findByIdWithoutAcl(blocked);
+        triggerStateStore.save(blocked.blocked(Clock.systemUTC(), null));
+        Optional<TriggerState> afterUnblock = triggerStateStore.findByIdWithoutAcl(blocked);
+
+        // THEN
+        assertThat(whileBlocked.map(TriggerState::getBlocked)).contains(block);
+        assertThat(afterUnblock).isPresent();
+        assertThat(afterUnblock.get().getBlocked()).isNull();
     }
 
     @Test

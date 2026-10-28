@@ -26,6 +26,7 @@ import io.kestra.core.models.triggers.AbstractTrigger;
 import io.kestra.core.models.triggers.Schedulable;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
+import io.kestra.core.scheduler.model.TriggerBlock;
 import io.kestra.core.scheduler.model.TriggerState;
 import io.kestra.core.scheduler.store.TriggerStateStore;
 import io.kestra.core.services.FlowParsingService;
@@ -50,15 +51,18 @@ public class DefaultSchedulableTriggerFetcher implements SchedulableTriggerFetch
     private final TriggerStateStore triggerStateStore;
     private final FlowMetaStore flowMetaStore;
     private final FlowParsingService flowParsingService;
+    private final MissedSchedulesRecovery missedSchedulesRecovery;
 
     public DefaultSchedulableTriggerFetcher(RunContextFactory runContextFactory,
         @Named("cached") TriggerStateStore triggerStateStore,
         FlowMetaStore flowMetaStore,
-        FlowParsingService flowParsingService) {
+        FlowParsingService flowParsingService,
+        MissedSchedulesRecovery missedSchedulesRecovery) {
         this.runContextFactory = runContextFactory;
         this.triggerStateStore = triggerStateStore;
         this.flowMetaStore = flowMetaStore;
         this.flowParsingService = flowParsingService;
+        this.missedSchedulesRecovery = missedSchedulesRecovery;
     }
 
     /**
@@ -109,7 +113,7 @@ public class DefaultSchedulableTriggerFetcher implements SchedulableTriggerFetch
                     flow = TriggerFlowParser.parseForTrigger(flowParsingService, rawFlow, LOG);
                 } catch (FlowBlockedException e) {
                     // Skip the flow: it is blocked by governance and must not run.
-                    logBlockedByGovernance(rawFlow, triggerState, e);
+                    recordBlockedByGovernance(clock, rawFlow, triggerState, e);
                     return null;
                 } catch (FlowProcessingException e) {
                     disableUnparseable(clock, triggerState, e);
@@ -138,6 +142,14 @@ public class DefaultSchedulableTriggerFetcher implements SchedulableTriggerFetch
                 ConditionContext conditionContext = ConditionContext.builder().flow(flow).runContext(runContext).build();
 
                 try {
+                    if (triggerState.getBlocked() != null) {
+                        TriggerState unblocked = unblock(clock, flow, triggerState, trigger, runContext);
+                        if (unblocked.getNextEvaluationDate() != null && unblocked.getNextEvaluationDate().isAfter(now.toInstant())) {
+                            return null;
+                        }
+                        triggerState = unblocked;
+                    }
+
                     if (triggerState.getNextEvaluationDate() == null) {
                         ZonedDateTime nextEvaluationDate = NextEvaluationDate.get(clock, trigger, triggerState.context(), conditionContext);
                         triggerState = triggerState.updateForNextEvaluationDate(clock, nextEvaluationDate);
@@ -209,10 +221,16 @@ public class DefaultSchedulableTriggerFetcher implements SchedulableTriggerFetch
     }
 
     /**
-     * Reports a governance block in the trigger's own logs. Skipping is otherwise invisible to the user: the
-     * trigger simply stops firing, and the only trace is a server-side log they cannot reach.
+     * Records the block and reports it in the trigger's own logs, only when it changed since the last loop: the
+     * trigger stays due while blocked, so it is rejected again on every loop.
      */
-    private void logBlockedByGovernance(final FlowWithSource flow, final TriggerState triggerState, final FlowBlockedException e) {
+    private void recordBlockedByGovernance(final Clock clock, final FlowWithSource flow, final TriggerState triggerState, final FlowBlockedException e) {
+        TriggerBlock block = TriggerBlock.from(e);
+        if (block.isSameBlockAs(triggerState.getBlocked())) {
+            return;
+        }
+
+        triggerStateStore.save(triggerState.blocked(clock, block));
         ListUtils.emptyOnNull(flow.getTriggers()).stream()
             .filter(it -> it.getId().equals(triggerState.getTriggerId()))
             .findFirst()
@@ -226,6 +244,25 @@ public class DefaultSchedulableTriggerFetcher implements SchedulableTriggerFetch
                     e.getMessage()
                 )
             );
+    }
+
+    /**
+     * Clears the block and lets a schedule catch up on the dates it missed as its {@code recoverMissedSchedules} says.
+     */
+    private TriggerState unblock(final Clock clock, final FlowWithSource flow, final TriggerState triggerState, final AbstractTrigger trigger, final RunContext runContext) {
+        TriggerState unblocked = triggerState.blocked(clock, null);
+        if (trigger instanceof Schedulable) {
+            unblocked = missedSchedulesRecovery.updateForResumedTrigger(clock, unblocked, flow, trigger, true);
+        }
+        Logs.logExecution(
+            flow,
+            runContext.logger(),
+            Level.INFO,
+            "[trigger: {}] No longer blocked by governance, next evaluation on {}",
+            trigger.getId(),
+            unblocked.getNextEvaluationDate()
+        );
+        return triggerStateStore.save(unblocked);
     }
 
     private void logError(final ZonedDateTime now, ConditionContext conditionContext, FlowInterface flow, AbstractTrigger trigger, Throwable e) {

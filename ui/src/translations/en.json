@@ -1154,6 +1154,9 @@
     "unlock trigger": {
       "success": "Trigger is unlocked"
     },
+    "trigger blocked": "Blocked by policy",
+    "trigger blocked check failed": "The governance policies could not be checked, so the trigger is held until they can be.",
+    "trigger blocked tooltip": "{reason} This status refreshes at the trigger's next evaluation, so it can stay shown for a while after the block ends, and until a disabled trigger is enabled again.",
     "trigger disabled": "Trigger is disabled within Flow source",
     "trigger enable dialog": {
       "title": "Enable trigger",

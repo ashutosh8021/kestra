@@ -36,6 +36,7 @@ import io.kestra.core.scheduler.model.TriggerType;
 import io.kestra.core.services.ConditionService;
 import io.kestra.core.services.FlowParsingService;
 import io.kestra.scheduler.internals.DefaultSchedulableTriggerFetcher;
+import io.kestra.scheduler.internals.MissedSchedulesRecovery;
 import io.kestra.scheduler.internals.NextEvaluationDate;
 import io.kestra.scheduler.internals.SchedulableEvaluator;
 import io.kestra.scheduler.pubsub.TriggerWorkerJobPublisher;
@@ -951,7 +952,7 @@ class TriggerSchedulerTest {
             conditionService,
             flowParsingService,
             schedulableEvaluator,
-            new DefaultSchedulableTriggerFetcher(runContextFactory, triggerStateStore, flowMetaStore, flowParsingService),
+            new DefaultSchedulableTriggerFetcher(runContextFactory, triggerStateStore, flowMetaStore, flowParsingService, new MissedSchedulesRecovery(runContextFactory)),
             workerJobPublisher,
             triggerExecutionPublisher,
             new SchedulerConfiguration(1, Duration.ZERO, 100)

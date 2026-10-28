@@ -1154,6 +1154,9 @@
     "unlock trigger": {
       "success": "Trigger अनलॉक किया गया"
     },
+    "trigger blocked": "पॉलिसी द्वारा अवरुद्ध",
+    "trigger blocked check failed": "गवर्नेंस पॉलिसी की जाँच नहीं की जा सकी, इसलिए ट्रिगर को तब तक रोक कर रखा गया है जब तक उनकी जाँच नहीं हो जाती।",
+    "trigger blocked tooltip": "{reason} यह स्थिति trigger के अगले मूल्यांकन पर अपडेट होती है, इसलिए रोक हटने के बाद भी यह कुछ समय तक दिख सकती है, और तब तक भी जब तक किसी अक्षम trigger को फिर से सक्षम नहीं किया जाता।",
     "trigger disabled": "Flow स्रोत के भीतर Trigger अक्षम है",
     "trigger enable dialog": {
       "title": "trigger सक्षम करें",

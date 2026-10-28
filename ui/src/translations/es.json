@@ -1154,6 +1154,9 @@
     "unlock trigger": {
       "success": "Trigger desbloqueado"
     },
+    "trigger blocked": "Bloqueado por política",
+    "trigger blocked check failed": "No se pudieron verificar las políticas de gobernanza, por lo que el Trigger se retiene hasta que puedan serlo.",
+    "trigger blocked tooltip": "{reason} Este estado se actualiza en la próxima evaluación del trigger, por lo que puede seguir mostrándose un tiempo después de que termine el bloqueo, y hasta que un trigger desactivado se vuelva a activar.",
     "trigger disabled": "El trigger está deshabilitado dentro del Flow source",
     "trigger enable dialog": {
       "title": "Habilitar trigger",

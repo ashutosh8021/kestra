@@ -104,8 +104,17 @@
                         <KsDateAgo :inverted="true" :date="scope.row.lastTriggeredDate" />
                     </template>
                     <template v-else-if="col.prop === 'nextEvaluationDate'">
+                        <KsTooltip
+                            v-if="scope.row.blocked"
+                            :content="$t('trigger blocked tooltip', {reason: scope.row.blocked.reason === 'POLICY' ? scope.row.blocked.message : $t('trigger blocked check failed')})"
+                            effect="light"
+                        >
+                            <KsTag data-test="trigger-blocked" type="warning" size="small" effect="light">
+                                {{ $t("trigger blocked") }}
+                            </KsTag>
+                        </KsTooltip>
                         <KsTag
-                            v-if="!scope.row.nextEvaluationDate"
+                            v-else-if="!scope.row.nextEvaluationDate"
                             type="warning"
                             size="small"
                             effect="light"
