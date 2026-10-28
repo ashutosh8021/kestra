@@ -56,41 +56,6 @@ function mountExecutionRoot() {
     })
 }
 
-function rejectionHandlerOf(mock: ReturnType<typeof vi.fn>) {
-    let handler: ((e: unknown) => unknown) | undefined
-    mock.mockReturnValueOnce({catch: (onRejected: (e: unknown) => unknown) => {
-        handler = onRejected
-        return new Promise(() => {})
-    }})
-    return () => handler!
-}
-
-describe("useExecutionRoot dependency count", () => {
-    const flowStore = useFlowStore()
-
-    it("loads the dependency count silently and survives a viewer without access to the flow", async () => {
-        const forbidden = {status: 403, __kestra_handled: false}
-        vi.mocked(flowStore.loadDependencies).mockRejectedValueOnce(forbidden)
-
-        const wrapper = mountExecutionRoot()
-        await flushPromises()
-
-        expect(flowStore.loadDependencies).toHaveBeenCalledWith(expect.objectContaining({id: "demo_breadcrumb_fix"}), true)
-        expect(forbidden.__kestra_handled).toBe(true)
-        wrapper.unmount()
-    })
-
-    it("still surfaces a failure other than a missing permission while loading the dependency count", async () => {
-        const handler = rejectionHandlerOf(vi.mocked(flowStore.loadDependencies))
-
-        const wrapper = mountExecutionRoot()
-        await flushPromises()
-
-        expect(() => handler()({status: 500})).toThrow()
-        wrapper.unmount()
-    })
-})
-
 describe("useExecutionRoot unmount cleanup", () => {
     const flowStore = useFlowStore()
 

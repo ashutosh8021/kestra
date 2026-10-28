@@ -31,7 +31,6 @@
     import {useExecutionsStore, type Execution} from "../../stores/executions"
     import {deepestEnclosingPath} from "../../utils/loopScope"
     import {useFlowStore} from "../../stores/flow"
-    import {handledIf} from "../../utils/kestraHttp"
 
     withDefaults(defineProps<{
         horizontalDefault?: boolean
@@ -164,9 +163,7 @@
     function loadFlowSource() {
         const exec = execution.value
         if (!exec || flowStore.flow?.id === exec.flowId && flowStore.flow?.namespace === exec.namespace) return
-        flowStore.loadFlow({namespace: exec.namespace, id: exec.flowId}).catch((e: unknown) => {
-            if (!handledIf(e, [403])) throw e
-        })
+        flowStore.loadFlow({namespace: exec.namespace, id: exec.flowId, optional: true})
     }
 
     function loadGraph(force?: boolean) {

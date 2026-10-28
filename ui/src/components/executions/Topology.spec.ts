@@ -57,39 +57,18 @@ function setup(loadFlow = vi.fn().mockResolvedValue(undefined)) {
     return {store, subscriptions, wrapper, expand}
 }
 
-function rejectionHandlerOf(mock: ReturnType<typeof vi.fn>) {
-    let handler: ((e: unknown) => unknown) | undefined
-    mock.mockReturnValueOnce({catch: (onRejected: (e: unknown) => unknown) => {
-        handler = onRejected
-        return new Promise(() => {})
-    }})
-    return () => handler!
-}
-
 describe("executions/Topology flow source", () => {
     beforeEach(() => {
         setActivePinia(createPinia())
     })
 
-    it("loads the flow source silently for a viewer without access to the flow", async () => {
-        const forbidden = {status: 403, __kestra_handled: false}
-        const loadFlow = vi.fn().mockRejectedValueOnce(forbidden)
+    it("loads the flow source as optional, so a viewer without access to the flow sees no error", async () => {
+        const loadFlow = vi.fn().mockResolvedValue({})
 
         setup(loadFlow)
         await flushPromises()
 
-        expect(loadFlow).toHaveBeenCalledWith({namespace: "ns", id: "flow"})
-        expect(forbidden.__kestra_handled).toBe(true)
-    })
-
-    it("still surfaces a failure other than a missing permission while loading the flow source", async () => {
-        const loadFlow = vi.fn()
-        const handler = rejectionHandlerOf(loadFlow)
-
-        setup(loadFlow)
-        await flushPromises()
-
-        expect(() => handler()({status: 500})).toThrow()
+        expect(loadFlow).toHaveBeenCalledWith({namespace: "ns", id: "flow", optional: true})
     })
 })
 
